@@ -131,3 +131,37 @@ def register_attendance(data: AttendanceModel, db: Session = Depends(get_db)):
         "latitude": data.latitude,
         "longitude": data.longitude
     }
+# endopointe para verificar l historia de usuario
+# @app.get: crea una ruta para consultar información.
+# user_id: recibe el identificador del usuario.
+# filter: busca solamente sus asistencias.
+# order_by: ordena los registros del más reciente al más antiguo.
+# history: prepara los datos que recibirá Flutter
+@app.get("/attendance/{user_id}/")
+def get_attendance_history(user_id: int, db: Session = Depends(get_db)):
+
+    # Buscao y verificacomo que le usuario exista
+    user = db.query(User).filter(User.id == user_id).first()
+    # si el usuaio no existe enviamos un mensaje de error
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Consultar las asistencias del usuario y ls ordeneamos de forma decesndente 
+    records = db.query(Attendance).filter(
+        Attendance.user_id == user_id
+    ).order_by(Attendance.created_at.desc()).all()
+
+    # Crear una lista con los datos de las asistencias
+    history = []
+    # recorremos la lista de loas datos 
+    for record in records:
+        history.append({
+            "id": record.id,
+            "latitude": record.latitude,
+            "longitude": record.longitude,
+            "address": record.address,
+            "created_at": str(record.created_at)
+        })
+    
+    # retormanos las ista 
+    return history
